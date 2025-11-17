@@ -1,9 +1,10 @@
 import asyncio
+from llama_index.readers.file import PyMuPDFReader
 
 
 class DocumentLoaderService:
-    def __init__(self, reader):
-        self.reader = reader
+    def __init__(self):
+        self.reader = PyMuPDFReader()
 
-    def load_documents(self, file_path: str):
-        return asyncio.to_thread(self.reader.load, file_path)
+    async def load_documents(self, file_path: str):
+        return await asyncio.to_thread(self.reader.load_data, file_path)
