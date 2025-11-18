@@ -17,6 +17,7 @@ dependencies = [
     "llama-index-embeddings-openai>=0.5.1",
     "llama-index>=0.14.8",
     "llama-index-readers-file>=0.5.4",
+    "tenacity>=8.0.0",
 ]
 
 [project.scripts]

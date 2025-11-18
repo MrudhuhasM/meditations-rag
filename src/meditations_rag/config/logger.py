@@ -5,7 +5,6 @@ This module sets up simple logging with console and file output.
 """
 
 import sys
-from pathlib import Path
 
 from loguru import logger
 

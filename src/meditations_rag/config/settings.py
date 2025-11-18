@@ -2,8 +2,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, SecretStr, field_validator
 from functools import lru_cache
 from urllib.parse import urlparse
-import ipaddress
-import socket
 
 
 class AppSettings(BaseSettings):
@@ -45,11 +43,15 @@ class RagSettings(BaseSettings):
     llm_provider: str = Field(default="openai", description="LLM service provider (e.g., openai, gemini, local)")
     buffer_size: int = Field(default=5, description="Size of the context buffer for RAG")
     break_point_threshold: int = Field(default=95 , description="Threshold for breaking points in document retrieval")
-    max_tokens: int = Field(default=2048, description="Maximum tokens for LLM responses")
     batch_size: int = Field(default=32, description="Batch size for processing documents")
     chunk_embed_batch_size: int = Field(default=32, description="Batch size for embedding chunks")
     max_concurrent_requests: int = Field(default=5, description="Maximum concurrent requests to LLM/embedding services")
     failure_threshold: float = Field(default=0.2, description="percentage of allowed failures before aborting operations")
+    
+    # Metadata extraction settings
+    metadata_extraction_enabled: bool = Field(default=True, description="Enable metadata extraction from chunks")
+    metadata_batch_size: int = Field(default=10, description="Batch size for metadata extraction")
+    metadata_max_concurrent: int = Field(default=5, description="Max concurrent metadata extraction requests")
 
 
 class LoggingSettings(BaseSettings):
@@ -70,10 +72,13 @@ class OpenAISettings(BaseSettings):
 
     api_key: SecretStr | None = Field(default=None, description="OpenAI API key")
     api_base: str = Field(default="https://api.openai.com/v1", description="Base URL for OpenAI API")
-    llm_model_name: str = Field(default="gpt-4", description="Default OpenAI model name")
+    llm_model_name: str = Field(default="gpt-4o-mini", description="Default OpenAI model name")
     embedding_model_name: str = Field(default="text-embedding-ada-002", description="Default OpenAI embedding model name")
     timeout: int = Field(default=30, description="Timeout for OpenAI API requests in seconds")
     max_retries: int = Field(default=3, description="Maximum number of retries for OpenAI API requests")
+    max_tokens: int = Field(default=2048, description="Maximum tokens for LLM responses")
+    temperature: float = Field(default=0.7, description="Temperature setting for LLM responses")
+    reasoning_enabled: bool = Field(default=True, description="Enable reasoning capabilities for LLM")
 
     @field_validator('api_key')
     @classmethod
@@ -115,6 +120,9 @@ class GeminiSettings(BaseSettings):
     embedding_model_name: str = Field(default="models/text-embedding-004", description="Default Gemini embedding model name (newer model)")
     timeout: int = Field(default=30, description="Timeout for Gemini API requests in seconds")
     max_retries: int = Field(default=3, description="Maximum number of retries for Gemini API requests")
+    max_tokens: int = Field(default=2048, description="Maximum tokens for LLM responses")
+    temperature: float = Field(default=0.7, description="Temperature setting for LLM responses")
+    reasoning_enabled: bool = Field(default=True, description="Enable reasoning capabilities for LLM")
 
     @field_validator('api_key')
     @classmethod
@@ -157,6 +165,9 @@ class LocalLLMSettings(BaseSettings):
     embedding_model_name: str | None = Field(default=None, description="Name of the local embedding model")
     timeout: int = Field(default=60, description="Timeout for local LLM requests in seconds")
     max_retries: int = Field(default=3, description="Maximum number of retries for local LLM requests")
+    max_tokens: int = Field(default=2048, description="Maximum tokens for LLM responses")
+    temperature: float = Field(default=0.7, description="Temperature setting for LLM responses")
+    reasoning_enabled: bool = Field(default=True, description="Enable reasoning capabilities for LLM")
 
     @field_validator('api_key')
     @classmethod
