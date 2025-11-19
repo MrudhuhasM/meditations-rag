@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from typing import List
 
 from meditations_rag.api.schemas.rag import QueryRequest, BatchQueryRequest
@@ -29,6 +30,20 @@ async def query_rag(
     except Exception as e:
         logger.error(f"Error processing RAG query: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stream-query")
+async def stream_query_rag(
+    query: str,
+    pipeline: RagPipelineDep
+):
+    """
+    Stream RAG query progress and result using Server-Sent Events (SSE).
+    """
+    async def event_generator():
+        async for event in pipeline.stream_query_events(query=query):
+            yield f"data: {event}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @router.post("/batch-query", response_model=List[RAGResponse])
 async def batch_query_rag(

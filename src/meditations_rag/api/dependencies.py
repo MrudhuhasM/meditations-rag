@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Any
 from fastapi import Depends
 
 from meditations_rag.core.llm import create_llm
@@ -73,4 +73,4 @@ def get_agentic_graph():
     return graph
 
 RagPipelineDep = Annotated[RAGPipeline, Depends(get_rag_pipeline)]
-AgenticGraphDep = Annotated[any, Depends(get_agentic_graph)]
+AgenticGraphDep = Annotated[Any, Depends(get_agentic_graph)]

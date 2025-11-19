@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meditations RAG</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Meditations RAG</h1>
+            <p>Ask Marcus Aurelius about Stoic philosophy</p>
+            
+            <div class="mode-toggle">
+                <label class="switch">
+                    <input type="checkbox" id="agentic-toggle">
+                    <span class="slider round"></span>
+                </label>
+                <span id="mode-label">Standard RAG</span>
+            </div>
+        </header>
+        
+        <main>
+            <div class="search-box">
+                <input type="text" id="query-input" placeholder="What does Marcus say about anxiety?" autocomplete="off">
+                <button id="ask-btn">Ask</button>
+            </div>
+
+            <div id="status-container" class="hidden">
+                <div class="status-step" id="step-retrieval">
+                    <div class="step-icon">Wait</div>
+                    <div class="step-content">
+                        <div class="step-title">Retrieving Context</div>
+                        <div class="step-desc">Searching Meditations...</div>
+                    </div>
+                </div>
+                <div class="status-step" id="step-generation">
+                    <div class="step-icon">Wait</div>
+                    <div class="step-content">
+                        <div class="step-title">Generating Answer</div>
+                        <div class="step-desc">Consulting the Stoic sage...</div>
+                    </div>
+                </div>
+                <!-- Agentic Steps (Hidden by default) -->
+                <div class="status-step hidden" id="step-controller">
+                    <div class="step-icon">Wait</div>
+                    <div class="step-content">
+                        <div class="step-title">Controller</div>
+                        <div class="step-desc">Planning next step...</div>
+                    </div>
+                </div>
+                <div class="status-step hidden" id="step-evaluator">
+                    <div class="step-icon">Wait</div>
+                    <div class="step-content">
+                        <div class="step-title">Evaluator</div>
+                        <div class="step-desc">Checking answer quality...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="result-container" class="hidden">
+                <div class="answer-card">
+                    <h2>Answer</h2>
+                    <div id="answer-text"></div>
+                </div>
+                
+                <div class="sources-card">
+                    <h3>Sources</h3>
+                    <div id="sources-list"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>

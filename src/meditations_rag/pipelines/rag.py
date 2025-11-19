@@ -540,6 +540,93 @@ Remember: Your authority comes from the text itself. Stay faithful to what Marcu
         
         return final_responses
     
+    async def stream_query_events(
+        self,
+        query: str,
+        top_k: Optional[int] = None,
+        include_sources: bool = True,
+        include_metadata: bool = True
+    ):
+        """
+        Execute RAG pipeline and yield status events for SSE.
+        """
+        import json
+        
+        # Yield start event
+        yield json.dumps({"type": "status", "step": "retrieval_start", "message": "Starting retrieval..."})
+        
+        try:
+            # Step 1: Retrieve
+            retrieval_results = await self.retrieval_service.retrieve(
+                query=query,
+                top_k=top_k
+            )
+            
+            yield json.dumps({
+                "type": "status", 
+                "step": "retrieval_done", 
+                "message": f"Retrieved {len(retrieval_results)} documents."
+            })
+            
+            if not retrieval_results:
+                response = RAGResponse(
+                    query=query,
+                    answer="I couldn't find any relevant passages in Meditations to answer your question. Could you rephrase or ask something else?",
+                    sources=[],
+                    retrieval_metadata={"num_results": 0},
+                    generation_metadata={},
+                    total_time_seconds=0.0
+                )
+                yield json.dumps({"type": "result", "data": response.model_dump()})
+                return
+
+            # Step 2: Format Context
+            context = self._format_context(retrieval_results, include_metadata)
+            
+            # Step 3: Generate
+            yield json.dumps({"type": "status", "step": "generation_start", "message": "Generating answer..."})
+            
+            answer, generation_metadata = await self._generate_answer(query, context)
+            
+            # Step 4: Build Response
+            sources = []
+            if include_sources:
+                for result in retrieval_results:
+                    source = {
+                        "chunk_id": result.chunk_id,
+                        "text": result.text,
+                        "score": round(result.score, 4),
+                    }
+                    
+                    if result.chunk_score is not None:
+                        source["chunk_score"] = round(result.chunk_score, 4)
+                    if result.question_score is not None:
+                        source["question_score"] = round(result.question_score, 4)
+                    if result.matched_question:
+                        source["matched_question"] = result.matched_question
+                    
+                    if include_metadata and result.metadata:
+                        for key in ["topic", "book", "chapter", "keywords"]:
+                            if key in result.metadata:
+                                source[key] = result.metadata[key]
+                    
+                    sources.append(source)
+            
+            response = RAGResponse(
+                query=query,
+                answer=answer,
+                sources=sources,
+                retrieval_metadata={"num_results": len(retrieval_results)},
+                generation_metadata=generation_metadata,
+                total_time_seconds=0.0
+            )
+            
+            yield json.dumps({"type": "result", "data": response.model_dump()})
+            
+        except Exception as e:
+            logger.error(f"Error in stream: {e}", exc_info=True)
+            yield json.dumps({"type": "error", "message": str(e)})
+
     async def stream_answer(
         self,
         query: str,
