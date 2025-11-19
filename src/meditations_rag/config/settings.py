@@ -41,6 +41,7 @@ class RagSettings(BaseSettings):
 
     embedding_provider: str = Field(default="openai", description="Embedding service provider (e.g., openai, gemini, local)")
     llm_provider: str = Field(default="openai", description="LLM service provider (e.g., openai, gemini, local)")
+    strong_llm_provider: str = Field(default="openai", description="Strong LLM service provider for complex tasks")
     buffer_size: int = Field(default=5, description="Size of the context buffer for RAG")
     break_point_threshold: int = Field(default=95 , description="Threshold for breaking points in document retrieval")
     batch_size: int = Field(default=32, description="Batch size for processing documents")

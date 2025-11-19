@@ -63,7 +63,7 @@ class IngestPipeline:
         logger.info(f"Loaded {len(documents)} documents")
         
 
-        chunks = self.chunk_service.chunk_documents(documents[15:20])
+        chunks = self.chunk_service.chunk_documents(documents)
         logger.info(f"Created {len(chunks)} chunks")
         
 
