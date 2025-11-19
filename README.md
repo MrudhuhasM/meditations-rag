@@ -27,8 +27,14 @@ The core of the application is a stateful agent that orchestrates the retrieval 
 ### 🛠️ Modern Tech Stack
 - **Frameworks**: LangGraph, LlamaIndex, FastAPI
 - **Vector DB**: Qdrant
-- **LLMs**: OpenAI, OpenRouter, Gemini, Local (Ollama)
+- **LLMs**: OpenAI, OpenRouter, Gemini, Local (llama.cpp, VLLM)
 - **Tooling**: `uv` for dependency management, Docker for deployment
+
+### 🌐 Local LLM Support
+The application supports running with local LLMs via OpenAI-compatible APIs:
+- **llama.cpp**: For local model serving
+- **VLLM**: For high-performance inference on Kubernetes/GKE
+- Configure via environment variables to point to your local server
 
 ## 🏗️ Architecture
 
@@ -70,9 +76,9 @@ The agentic pipeline is built with LangGraph:
    cp .env.example .env
    ```
 
-3. **Install dependencies**
+3. **Build the Docker image**
    ```bash
-   uv sync
+   docker-compose build
    ```
 
 ### Running the Application
@@ -85,12 +91,12 @@ The agentic pipeline is built with LangGraph:
 2. **Run Ingestion (First time only)**
    Process the book and populate the vector database.
    ```bash
-   uv run python -m src.meditations_rag.main
+   docker-compose run --rm ingest
    ```
 
 3. **Start the API Server**
    ```bash
-   uv run uvicorn meditations_rag.api.main:app --reload
+   docker-compose up api
    ```
    The API will be available at `http://localhost:8000`.
    - Swagger UI: `http://localhost:8000/docs`
@@ -105,6 +111,8 @@ src/meditations_rag/
 ├── pipelines/      # RAG & Ingestion pipelines (LangGraph)
 ├── services/       # Business logic (Loader, Chunker, Retrieval)
 └── main.py         # Ingestion entry point
+scripts/
+└── ingest.py       # Standalone ingestion script
 ```
 
 ## 📚 Documentation

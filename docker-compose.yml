@@ -22,6 +22,21 @@ services:
       - huggingface_cache:/root/.cache/huggingface
     restart: unless-stopped
 
+  ingest:
+    build: .
+    container_name: meditations-rag-ingest
+    command: python scripts/ingest.py
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    env_file:
+      - .env
+    depends_on:
+      - qdrant
+    volumes:
+      - ./data:/app/data
+    profiles: ["ingest"]
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: meditations-qdrant
