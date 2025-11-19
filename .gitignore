@@ -39,6 +39,8 @@ Thumbs.db
 
 # Data
 data/
+notebooks/
+tests/
 src/meditations_rag/example_usage.py
 
 # Temporary files

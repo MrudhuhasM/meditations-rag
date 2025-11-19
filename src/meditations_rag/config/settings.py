@@ -54,6 +54,24 @@ class RagSettings(BaseSettings):
     metadata_extraction_enabled: bool = Field(default=True, description="Enable metadata extraction from chunks")
     metadata_batch_size: int = Field(default=10, description="Batch size for metadata extraction")
     metadata_max_concurrent: int = Field(default=5, description="Max concurrent metadata extraction requests")
+    
+    # Retrieval settings
+    retrieval_top_k: int = Field(default=6, description="Number of results to return from retrieval (increased for metadata-aware)")
+    retrieval_question_top_k: int = Field(default=10, description="Number of results to fetch from question collection")
+    retrieval_alpha: float = Field(default=0.3, description="Weight for question scores in fusion (0.0-1.0)")
+    retrieval_metadata_top_k: int = Field(default=5, description="Number of results per metadata filter")
+    retrieval_metadata_enabled: bool = Field(default=True, description="Enable metadata-aware retrieval")
+    retrieval_keyword_boost: float = Field(default=0.05, description="Score boost per keyword match")
+    retrieval_topic_boost: float = Field(default=0.15, description="Score boost for topic match")
+    retrieval_concept_boost: float = Field(default=0.10, description="Score boost for concept match")
+    retrieval_practice_boost: float = Field(default=0.10, description="Score boost for practice match")
+    
+    @field_validator('retrieval_alpha')
+    @classmethod
+    def validate_retrieval_alpha(cls, v):
+        if not (0.0 <= v <= 1.0):
+            raise ValueError('Retrieval alpha must be between 0.0 and 1.0')
+        return v
 
 
 class LoggingSettings(BaseSettings):

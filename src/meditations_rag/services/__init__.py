@@ -6,6 +6,7 @@ from .metadata import (
     MeditationsTopic,
     MetadataExtractionStrategy
 )
+from .retrieval import RetrievalService, RetrievalResult, QueryMetadata, QueryRewriter
 
 __all__ = [
     "DocumentLoaderService",
@@ -14,4 +15,8 @@ __all__ = [
     "ChunkMetadata",
     "MeditationsTopic",
     "MetadataExtractionStrategy",
+    "RetrievalService",
+    "RetrievalResult",
+    "QueryMetadata",
+    "QueryRewriter",
 ]
