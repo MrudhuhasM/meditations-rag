@@ -7,7 +7,25 @@ The application will be able to answer questions about the text, provide summari
 
 I will use the following technologies in this project:
 
-LLM: OpenAI, Local(Open AI), Gemini
+LLM: OpenAI, OpenRouter, Local(Open AI), Gemini
 Vector DB: Qdrant
 Embedding: OpenAI, Local(Open AI), Gemini
 Agent Framework: Langgraph
+
+## LLM Providers
+
+This project supports multiple LLM providers:
+
+- **OpenAI**: Industry-standard models (GPT-4, GPT-4o, GPT-4o-mini)
+- **OpenRouter**: Unified access to 100+ models from multiple providers (OpenAI, Anthropic, Google, Meta, etc.)
+- **Gemini**: Google's latest models with competitive pricing
+- **Local LLM**: Privacy-focused local models (Ollama, etc.)
+
+All providers include:
+- ✅ Automatic rate limiting
+- ✅ Retry logic with exponential backoff
+- ✅ Structured output support (Pydantic models)
+- ✅ Comprehensive error handling
+- ✅ Easy configuration via environment variables
+
+See [docs/openrouter_provider.md](docs/openrouter_provider.md) for detailed OpenRouter documentation.

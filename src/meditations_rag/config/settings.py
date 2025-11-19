@@ -45,8 +45,10 @@ class RagSettings(BaseSettings):
     break_point_threshold: int = Field(default=95 , description="Threshold for breaking points in document retrieval")
     batch_size: int = Field(default=32, description="Batch size for processing documents")
     chunk_embed_batch_size: int = Field(default=32, description="Batch size for embedding chunks")
+    embedding_api_batch_size: int = Field(default=32, description="Maximum batch size for raw embedding API calls (API limit)")
     max_concurrent_requests: int = Field(default=5, description="Maximum concurrent requests to LLM/embedding services")
     failure_threshold: float = Field(default=0.2, description="percentage of allowed failures before aborting operations")
+    embedding_dimension: int  = Field(default=1024, description="Dimension of the embedding vectors (if known)")
     
     # Metadata extraction settings
     metadata_extraction_enabled: bool = Field(default=True, description="Enable metadata extraction from chunks")
@@ -79,6 +81,11 @@ class OpenAISettings(BaseSettings):
     max_tokens: int = Field(default=2048, description="Maximum tokens for LLM responses")
     temperature: float = Field(default=0.7, description="Temperature setting for LLM responses")
     reasoning_enabled: bool = Field(default=True, description="Enable reasoning capabilities for LLM")
+    
+    # Rate limiting settings
+    rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting for OpenAI API")
+    rate_limit_requests_per_minute: int = Field(default=500, description="Max requests per minute (tier-based, adjust per your tier)")
+    rate_limit_tokens_per_minute: int = Field(default=150000, description="Max tokens per minute (tier-based, adjust per your tier)")
 
     @field_validator('api_key')
     @classmethod
@@ -123,6 +130,11 @@ class GeminiSettings(BaseSettings):
     max_tokens: int = Field(default=2048, description="Maximum tokens for LLM responses")
     temperature: float = Field(default=0.7, description="Temperature setting for LLM responses")
     reasoning_enabled: bool = Field(default=True, description="Enable reasoning capabilities for LLM")
+    
+    # Rate limiting settings
+    rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting for Gemini API")
+    rate_limit_requests_per_minute: int = Field(default=15, description="Max requests per minute (free tier default)")
+    rate_limit_requests_per_day: int = Field(default=1500, description="Max requests per day (free tier default)")
 
     @field_validator('api_key')
     @classmethod
@@ -208,6 +220,59 @@ class LocalLLMSettings(BaseSettings):
             raise ValueError('Max retries must be non-negative')
         return v
 
+
+class OpenRouterSettings(BaseSettings):
+    """OpenRouter API settings."""
+
+    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore", env_prefix="OPENROUTER_")
+
+    api_key: SecretStr | None = Field(default=None, description="OpenRouter API key")
+    api_base: str = Field(default="https://openrouter.ai/api/v1", description="Base URL for OpenRouter API")
+    llm_model_name: str = Field(default="openai/gpt-4o-mini", description="Default OpenRouter model name (format: provider/model)")
+    timeout: int = Field(default=30, description="Timeout for OpenRouter API requests in seconds")
+    max_retries: int = Field(default=3, description="Maximum number of retries for OpenRouter API requests")
+    max_tokens: int = Field(default=2048, description="Maximum tokens for LLM responses")
+    temperature: float = Field(default=0.7, description="Temperature setting for LLM responses")
+    
+    # OpenRouter-specific headers for app attribution (optional)
+    http_referer: str | None = Field(default=None, description="HTTP Referer for OpenRouter rankings (optional)")
+    x_title: str | None = Field(default=None, description="App title for OpenRouter rankings (optional)")
+    
+    # Rate limiting settings
+    rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting for OpenRouter API")
+    rate_limit_requests_per_minute: int = Field(default=200, description="Max requests per minute (adjust based on your usage)")
+    rate_limit_tokens_per_minute: int = Field(default=100000, description="Max tokens per minute (adjust based on your usage)")
+
+    @field_validator('api_key')
+    @classmethod
+    def validate_api_key(cls, v):
+        if v is not None and not v.get_secret_value().strip():
+            raise ValueError('OpenRouter API key cannot be empty')
+        return v
+
+    @field_validator('api_base')
+    @classmethod
+    def validate_api_base(cls, v):
+        parsed = urlparse(v)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError('Invalid OpenRouter API base URL')
+        return v
+
+    @field_validator('timeout')
+    @classmethod
+    def validate_timeout(cls, v):
+        if v <= 0:
+            raise ValueError('Timeout must be positive')
+        return v
+
+    @field_validator('max_retries')
+    @classmethod
+    def validate_max_retries(cls, v):
+        if v < 0:
+            raise ValueError('Max retries must be non-negative')
+        return v
+
+
 class QdrantSettings(BaseSettings):
     """Qdrant vector database settings."""
 
@@ -257,6 +322,7 @@ class Settings:
     openai: OpenAISettings = OpenAISettings()
     gemini: GeminiSettings = GeminiSettings()
     local_llm: LocalLLMSettings = LocalLLMSettings()
+    openrouter: OpenRouterSettings = OpenRouterSettings()
     qdrant: QdrantSettings = QdrantSettings()
 
 

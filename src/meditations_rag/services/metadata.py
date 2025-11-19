@@ -7,7 +7,7 @@ to enhance retrieval quality. Uses LLM-based structured output generation.
 
 from enum import Enum
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from meditations_rag.core.llm.base import LLMBase
 from meditations_rag.config import get_logger, settings
 import asyncio
@@ -57,9 +57,22 @@ class ChunkMetadata(BaseModel):
     
     keywords: List[str] = Field(
         description="8-12 distinctive keywords or phrases representing core concepts in the chunk",
-        min_length=8,
-        max_length=12
+        min_length=8
     )
+    
+    @field_validator('keywords', mode='after')
+    @classmethod
+    def validate_keywords_length(cls, v: List[str]) -> List[str]:
+        """
+        Validate and truncate keywords list if LLM returns more than expected.
+        
+        This provides resilience when the LLM doesn't follow instructions perfectly.
+        We keep the first 12 keywords as they're typically the most important.
+        """
+        if len(v) > 12:
+            logger.warning(f"LLM returned {len(v)} keywords, truncating to 12")
+            return v[:12]
+        return v
     
     topic: MeditationsTopic = Field(
         description="Single primary topic from predefined Stoic philosophy themes"

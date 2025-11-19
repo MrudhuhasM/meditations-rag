@@ -2,6 +2,7 @@ from .base import LLMBase
 from .openai import OpenAILLM
 from .gemini import GeminiLLM
 from .local_llm import LocalLLM
+from .openrouter import OpenRouterLLM
 from meditations_rag.config import settings, get_logger
 
 
@@ -12,7 +13,7 @@ def create_llm(provider: str | None = None) -> LLMBase:
     Uses Factory pattern for flexible provider selection.
     
     Args:
-        provider: LLM provider name ('openai', 'gemini', 'local').
+        provider: LLM provider name ('openai', 'gemini', 'local', 'openrouter').
                  If None, uses settings.rag.llm_provider
     
     Returns:
@@ -30,8 +31,10 @@ def create_llm(provider: str | None = None) -> LLMBase:
         return GeminiLLM()
     elif provider == "local":
         return LocalLLM()
+    elif provider == "openrouter":
+        return OpenRouterLLM()
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
 
-__all__ = ["LLMBase", "OpenAILLM", "GeminiLLM", "LocalLLM", "create_llm"]
+__all__ = ["LLMBase", "OpenAILLM", "GeminiLLM", "LocalLLM", "OpenRouterLLM", "create_llm"]

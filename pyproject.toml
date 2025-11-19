@@ -18,6 +18,8 @@ dependencies = [
     "llama-index>=0.14.8",
     "llama-index-readers-file>=0.5.4",
     "tenacity>=8.0.0",
+    "qdrant-client>=1.16.0",
+    "pyrate-limiter>=3.9.0",
 ]
 
 [project.scripts]

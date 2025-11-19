@@ -16,7 +16,7 @@ def get_chunk_embedding_model() -> OpenAIEmbedding | GoogleGenAIEmbedding:
         try:
             if settings.openai.api_key is None:
                 raise ValueError("OpenAI API key is required for OpenAI embeddings")
-            logger.info(f"Using OpenAI embedding model: {settings.openai.embedding_model_name}")
+            logger.info(f"Using OpenAI embedding model for Chunking: {settings.openai.embedding_model_name}")
             return OpenAIEmbedding(
                 model=settings.openai.embedding_model_name,
                 api_key=settings.openai.api_key.get_secret_value(),
@@ -35,7 +35,7 @@ def get_chunk_embedding_model() -> OpenAIEmbedding | GoogleGenAIEmbedding:
         try:
             if settings.gemini.api_key is None:
                 raise ValueError("Gemini API key is required for Gemini embeddings")
-            logger.info(f"Using Gemini embedding model: {settings.gemini.embedding_model_name}")
+            logger.info(f"Using Gemini embedding model for Chunking: {settings.gemini.embedding_model_name}")
             return GoogleGenAIEmbedding(
                 model=settings.gemini.embedding_model_name,
                 api_key=settings.gemini.api_key.get_secret_value(),
@@ -55,7 +55,7 @@ def get_chunk_embedding_model() -> OpenAIEmbedding | GoogleGenAIEmbedding:
                 if settings.local_llm.api_key
                 else "not-needed"
             )
-            logger.info(f"Using Local LLM embedding model: {settings.local_llm.embedding_model_name}")
+            logger.info(f"Using Local LLM embedding model for Chunking: {settings.local_llm.embedding_model_name}")
             return OpenAIEmbedding(
                 model_name=settings.local_llm.embedding_model_name,
                 api_key=api_key_value,
