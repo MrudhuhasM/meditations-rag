@@ -47,5 +47,5 @@ src/meditations_rag/example_usage.py
 tmp/
 temp/
 *.tmp
-docs/
+ignore-docs/
 examples/
