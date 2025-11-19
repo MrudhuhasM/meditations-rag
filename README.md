@@ -1,100 +1,115 @@
+# Agentic RAG: Meditations by Marcus Aurelius
 
-This is a portfolio project to showcase my work to potential employers.
+This is a portfolio project showcasing an **Agentic RAG (Retrieval-Augmented Generation)** application.
+The system allows users to query *Meditations* by Marcus Aurelius, providing accurate answers, summaries, and philosophical insights grounded in the text.
 
-In this project i am building an Agentic RAG application 
-My source for this project is Meditations by Marcus Aurelius, this is philosophical text that contains personal writings by Marcus Aurelius, Roman Emperor from 161 to 180 AD, in which he outlines his Stoic philosophy.
-The application will be able to answer questions about the text, provide summaries, and generate insights based on the content of the book.
+Unlike standard RAG, this project employs an **Agentic workflow** using **LangGraph**, enabling the system to reason about queries, perform multi-step retrieval, self-correct, and evaluate its own answers.
 
-I will use the following technologies in this project:
+## 🚀 Key Features
 
-LLM: OpenAI, OpenRouter, Local(Open AI), Gemini
-Vector DB: Qdrant
-Embedding: OpenAI, Local(Open AI), Gemini
-Agent Framework: Langgraph
+### 🤖 Agentic RAG Workflow (LangGraph)
+The core of the application is a stateful agent that orchestrates the retrieval and generation process:
+- **Controller Node**: Analyzes the user query and decides the next action (Search, Answer, Clarify, or Switch Model).
+- **Retriever Node**: Executes search queries using the hybrid retrieval service.
+- **Generator Node**: Synthesizes answers from retrieved context.
+- **Evaluator Node**: Checks the generated answer for groundedness and relevance. If the answer is poor, it loops back to the controller with feedback.
 
-## LLM Providers
+### 🔍 Advanced Retrieval Engine
+- **Hybrid Search**: Combines dense vector retrieval from document chunks and generated questions.
+- **Score Fusion**: Weighted combination of chunk scores and question scores (`final_score = chunk_score + α * question_score`).
+- **Metadata Filtering**: Leveraging extracted metadata (topics, chapters) for precise filtering.
 
-This project supports multiple LLM providers:
+### ⚡ High-Performance Ingestion
+- **Semantic Chunking**: Intelligently splits text based on semantic similarity.
+- **Metadata Extraction**: Uses LLMs to extract topics, keywords, and philosophical concepts for each chunk.
+- **Synthetic Questions**: Generates potential user questions for each chunk to improve retrieval matching.
 
-- **OpenAI**: Industry-standard models (GPT-4, GPT-4o, GPT-4o-mini)
-- **OpenRouter**: Unified access to 100+ models from multiple providers (OpenAI, Anthropic, Google, Meta, etc.)
-- **Gemini**: Google's latest models with competitive pricing
-- **Local LLM**: Privacy-focused local models (Ollama, etc.)
+### 🛠️ Modern Tech Stack
+- **Frameworks**: LangGraph, LlamaIndex, FastAPI
+- **Vector DB**: Qdrant
+- **LLMs**: OpenAI, OpenRouter, Gemini, Local (Ollama)
+- **Tooling**: `uv` for dependency management, Docker for deployment
 
-All providers include:
-- ✅ Automatic rate limiting
-- ✅ Retry logic with exponential backoff
-- ✅ Structured output support (Pydantic models)
-- ✅ Comprehensive error handling
-- ✅ Easy configuration via environment variables
+## 🏗️ Architecture
 
-## Ingestion Pipeline
+### Ingestion Pipeline
+1. **Load**: PDF loading with PyMuPDF.
+2. **Chunk**: Semantic chunking.
+3. **Enrich**: Extract metadata & generate synthetic questions.
+4. **Embed**: Generate embeddings (OpenAI/Gemini/Local).
+5. **Store**: Upsert to Qdrant.
 
-The ingestion pipeline processes documents and stores them in a vector database for retrieval:
+### Agentic Pipeline
+The agentic pipeline is built with LangGraph:
+1. **Controller** receives query.
+2. **Controller** decides to search.
+3. **Retriever** fetches documents.
+4. **Controller** reviews docs, decides to answer or search again.
+5. **Generator** drafts answer.
+6. **Evaluator** critiques answer.
+7. **Final Answer** returned to user.
 
-**Pipeline Stages:**
-1. **Document Loading**: Load documents using PyMuPDF (PDF support)
-2. **Semantic Chunking**: Intelligently split documents using semantic similarity
-3. **Metadata Extraction**: Extract structured metadata (questions, keywords, topics, entities, philosophical concepts)
-4. **Embedding Generation**: Generate vector embeddings for chunks and questions
-5. **Vector Store**: Upsert chunks and questions to Qdrant vector database
+## 🛠️ Getting Started
 
-**Features:**
-- ✅ Batch processing with configurable batch sizes
-- ✅ Async/await for efficient I/O operations
-- ✅ Optional metadata extraction via LLM
-- ✅ Dual collection strategy (chunks + questions for hybrid retrieval)
-- ✅ Comprehensive logging and error handling
+### Prerequisites
+- Python 3.12+
+- Docker & Docker Compose
+- [uv](https://github.com/astral-sh/uv) (recommended)
 
-## Retrieval Service
+### Installation
 
-The retrieval service implements a **hybrid retrieval strategy** combining dense retrieval from both chunks and questions:
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd meditations-rag
+   ```
 
-**Retrieval Strategy:**
-1. **Dense Retrieval from Chunks**: Semantic search over chunk embeddings (direct content matching)
-2. **Dense Retrieval from Questions**: Semantic search over question embeddings (conceptual matching)
-3. **Score Fusion**: Linear combination using configurable alpha parameter
+2. **Set up environment variables**
+   Copy `.env.example` to `.env` and configure your API keys (OpenAI, Qdrant, etc.).
+   ```bash
+   cp .env.example .env
+   ```
 
-**Score Fusion Formula:**
+3. **Install dependencies**
+   ```bash
+   uv sync
+   ```
+
+### Running the Application
+
+1. **Start Infrastructure (Qdrant)**
+   ```bash
+   docker-compose up -d qdrant
+   ```
+
+2. **Run Ingestion (First time only)**
+   Process the book and populate the vector database.
+   ```bash
+   uv run python -m src.meditations_rag.main
+   ```
+
+3. **Start the API Server**
+   ```bash
+   uv run uvicorn meditations_rag.api.main:app --reload
+   ```
+   The API will be available at `http://localhost:8000`.
+   - Swagger UI: `http://localhost:8000/docs`
+   - Agentic Query: `POST /agentic/query`
+
+## 📂 Project Structure
+
 ```
-final_score = chunk_score + α * question_score
+src/meditations_rag/
+├── api/            # FastAPI application & routers
+├── core/           # Core logic (LLM, Embedding, Rate Limiting)
+├── pipelines/      # RAG & Ingestion pipelines (LangGraph)
+├── services/       # Business logic (Loader, Chunker, Retrieval)
+└── main.py         # Ingestion entry point
 ```
 
-Where `α` (alpha) controls the weight of question-based retrieval (0.0 to 1.0).
+## 📚 Documentation
 
-**Features:**
-- ✅ Three retrieval modes: Hybrid (default), Chunk-only, Question-only
-- ✅ Configurable score fusion with alpha parameter
-- ✅ Parallel retrieval for performance
-- ✅ LLM-ready context formatting
-- ✅ Comprehensive metadata in results
-- ✅ Flexible top-k configuration
-- ✅ Production-grade error handling
-
-**Quick Example:**
-```python
-from meditations_rag.services import RetrievalService
-
-# Initialize
-retrieval_service = RetrievalService(
-    vector_store=vector_store,
-    embedding_service=embedding_service,
-    alpha=0.3,  # Score fusion weight
-    top_k=5     # Number of results
-)
-
-# Retrieve
-results = await retrieval_service.retrieve(
-    query="How should I prepare for difficult people?"
-)
-
-# Use results
-for result in results:
-    print(f"Score: {result.score:.4f}")
-    print(f"Text: {result.text[:200]}...")
-```
-
-**Documentation:**
-- See [docs/RETRIEVAL_SERVICE.md](docs/RETRIEVAL_SERVICE.md) for comprehensive documentation
-- See [docs/RETRIEVAL_QUICK_REF.md](docs/RETRIEVAL_QUICK_REF.md) for quick reference
-- See [examples/retrieval_example.py](examples/retrieval_example.py) for working examples
+Detailed documentation is available in the `docs/` directory:
+- [Retrieval Service](docs/RETRIEVAL_SERVICE.md)
+- [RAG Pipeline](docs/RAG_PIPELINE.md)
+- [Metadata Extraction](docs/metadata_extraction.md)
