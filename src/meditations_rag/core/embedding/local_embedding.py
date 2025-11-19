@@ -34,34 +34,8 @@ class LocalEmbedding(EmbeddingBase):
         embedding = response.data[0].embedding            
         return embedding
 
-    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
-        """Generate embeddings for multiple texts in batch."""
-        if not texts:
-            return []
-        
-        # Split into batches if needed (API limit is typically 32)
-        api_batch_size = settings.rag.embedding_api_batch_size
-        all_embeddings = []
-        
-        if len(texts) <= api_batch_size:
-            # Single batch - process directly
-            logger.debug(f"Generating embeddings for {len(texts)} texts in single batch")
-            batch_embeddings = await self._embed_batch(texts)
-            all_embeddings.extend(batch_embeddings)
-        else:
-            # Multiple batches needed
-            num_batches = (len(texts) + api_batch_size - 1) // api_batch_size
-            logger.info(f"Splitting {len(texts)} texts into {num_batches} batches of max {api_batch_size}")
-            
-            for i in range(0, len(texts), api_batch_size):
-                batch = texts[i:i + api_batch_size]
-                batch_num = (i // api_batch_size) + 1
-                logger.debug(f"Processing batch {batch_num}/{num_batches} with {len(batch)} texts")
-                
-                batch_embeddings = await self._embed_batch(batch)
-                all_embeddings.extend(batch_embeddings)
-        
-        return all_embeddings
+    # embed_texts is now handled by the base class
+
 
     @retry(stop=stop_after_attempt(settings.local_llm.max_retries), wait=wait_exponential())
     async def _embed_batch(self, texts: list[str]) -> list[list[float]]:

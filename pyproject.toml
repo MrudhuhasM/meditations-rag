@@ -20,6 +20,8 @@ dependencies = [
     "tenacity>=8.0.0",
     "qdrant-client>=1.16.0",
     "pyrate-limiter>=3.9.0",
+    "fastapi>=0.121.2",
+    "uvicorn>=0.38.0",
 ]
 
 [project.scripts]
