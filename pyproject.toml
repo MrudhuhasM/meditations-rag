@@ -22,6 +22,7 @@ dependencies = [
     "pyrate-limiter>=3.9.0",
     "fastapi>=0.121.2",
     "uvicorn>=0.38.0",
+    "langgraph>=1.0.3",
 ]
 
 [project.scripts]
