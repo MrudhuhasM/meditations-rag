@@ -9,7 +9,7 @@ Usage:
     >>> print(settings.llm.openai.openai_model)
 """
 
-from meditations_rag.config.logger import logger, get_logger, setup_logging
+from meditations_rag.config.logger import get_logger, logger, setup_logging
 from meditations_rag.config.settings import Settings, get_settings, settings
 
 __all__ = [

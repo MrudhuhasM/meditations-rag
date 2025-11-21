@@ -5,14 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meditations RAG</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .sample-questions {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .sample-questions p {
+            margin-bottom: 0.5rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .question-chips {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .chip {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #333;
+        }
+        .chip:hover {
+            background: #e0e0e0;
+            transform: translateY(-1px);
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Meditations RAG</h1>
             <p>Ask Marcus Aurelius about Stoic philosophy</p>
-            
+
+            <div class="api-key-container">
+                <input type="password" id="api-key-input" placeholder="Enter API Key" autocomplete="off">
+            </div>
+
             <div class="mode-toggle">
                 <label class="switch">
                     <input type="checkbox" id="agentic-toggle">
@@ -20,9 +54,25 @@
                 </label>
                 <span id="mode-label">Standard RAG</span>
             </div>
+
+            <div class="header-actions">
+                <button id="disclaimer-btn" class="text-btn">Disclaimer & Info</button>
+            </div>
+
+            <p class="subtle-notice">ⓘ AI-generated responses. Verify information independently.</p>
         </header>
-        
+
         <main>
+            <div class="sample-questions">
+                <p>Try a sample question:</p>
+                <div class="question-chips">
+                    <button class="chip" data-question="How does Marcus's philosophy address anger toward others' faults?">Handling Anger</button>
+                    <button class="chip" data-question="According to Marcus, how should he prepare himself each morning to meet difficult people?">Difficult People</button>
+                    <button class="chip" data-question="Summarize Marcus's view on the gods' relationship with human affairs.">Nature of Universe</button>
+                    <button class="chip" data-question="Why does Marcus consider fame after death as empty?">Fame is Meaningless</button>
+                </div>
+            </div>
+
             <div class="search-box">
                 <input type="text" id="query-input" placeholder="What does Marcus say about anxiety?" autocomplete="off">
                 <button id="ask-btn">Ask</button>
@@ -65,14 +115,54 @@
                     <h2>Answer</h2>
                     <div id="answer-text"></div>
                 </div>
-                
+
                 <div class="sources-card">
                     <h3>Sources</h3>
                     <div id="sources-list"></div>
                 </div>
             </div>
         </main>
+
+        <footer class="footer">
+            <p class="footer-text"><strong>Meditations RAG</strong></p>
+            <p class="footer-text">© 2025 MrudhuhasM. All rights reserved.</p>
+            <p class="footer-text"><em>"Meditations" is the ancient text by Marcus Aurelius (121-180 AD).</em></p>
+        </footer>
     </div>
+
+    <!-- Disclaimer Modal -->
+    <div id="disclaimer-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>📋 About This Application & Disclaimers</h2>
+
+            <div class="modal-body">
+                <p><strong>Purpose:</strong> This is an AI-powered Retrieval-Augmented Generation (RAG) system designed to answer questions about Marcus Aurelius' "Meditations" based on the actual text.</p>
+
+                <div class="alert-box warning">
+                    <h4>⚠️ Important Disclaimers</h4>
+                    <ul>
+                        <li><strong>Do not use for illegal or harmful purposes.</strong> This tool is intended for educational and philosophical purposes only.</li>
+                        <li><strong>Not a substitute for professional advice:</strong> Do not use this for legal, medical, financial, or mental health decisions. Consult qualified professionals instead.</li>
+                        <li><strong>Not guaranteed to be accurate:</strong> While the system retrieves from the actual "Meditations" text, AI interpretations can be incorrect or misleading.</li>
+                        <li><strong>Hallucination Risk:</strong> The LLM may generate plausible-sounding but false information. Always verify critical information.</li>
+                        <li><strong>Bias & Context Dependency:</strong> Responses can reflect biases in training data and may vary based on question phrasing.</li>
+                        <li><strong>User Responsibility:</strong> YOU are responsible for how you use this tool and any consequences resulting from its use.</li>
+                    </ul>
+                </div>
+
+                <div class="tech-info">
+                    <h4>Technical Details</h4>
+                    <p>This system uses a hybrid retrieval approach (semantic + keyword) and an agentic workflow to ensure high-quality answers grounded in the source text.</p>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="accept-disclaimer" class="primary-btn">I Understand</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/script.js"></script>
 </body>
 </html>

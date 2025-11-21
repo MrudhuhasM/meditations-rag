@@ -5,9 +5,10 @@ This module provides a factory function to create LlamaIndex embedding models
 used specifically for the chunking process (SemanticSplitterNodeParser).
 """
 
-from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
-from meditations_rag.config import settings, get_logger
+from llama_index.embeddings.openai import OpenAIEmbedding
+
+from meditations_rag.config import get_logger, settings
 
 logger = get_logger(__name__)
 

@@ -1,48 +1,61 @@
-from openai import AsyncOpenAI, APIError, APITimeoutError, RateLimitError, AuthenticationError, APIConnectionError
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from meditations_rag.config import settings, get_logger
-from meditations_rag.core.embedding.base import EmbeddingBase
-from meditations_rag.core.rate_limiter import rate_limit, RateLimiterFactory
-from meditations_rag.core.exceptions import (
-    EmbeddingConfigurationError,
-    EmbeddingAPIError,
-    EmbeddingRateLimitError,
-    EmbeddingTimeoutError,
-    EmbeddingResponseError,
-    EmbeddingAuthenticationError,
-    EmbeddingDimensionMismatchError,
+from openai import (
+    APIConnectionError,
+    APIError,
+    APITimeoutError,
+    AsyncOpenAI,
+    AuthenticationError,
+    RateLimitError,
 )
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from meditations_rag.config import get_logger, settings
+from meditations_rag.core.embedding.base import EmbeddingBase
+from meditations_rag.core.exceptions import (
+    EmbeddingAPIError,
+    EmbeddingAuthenticationError,
+    EmbeddingConfigurationError,
+    EmbeddingDimensionMismatchError,
+    EmbeddingRateLimitError,
+    EmbeddingResponseError,
+    EmbeddingTimeoutError,
+)
+from meditations_rag.core.rate_limiter import RateLimiterFactory, rate_limit
 
 logger = get_logger(__name__)
 
 
 class OpenAIEmbedding(EmbeddingBase):
     """OpenAI embedding implementation."""
-    
+
     def __init__(self):
         self.settings = settings.openai
 
         if not self.settings.api_key:
             raise EmbeddingConfigurationError(
-                'OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment.',
-                details={'provider': 'openai'}
+                "OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment.",
+                details={"provider": "openai"},
             )
 
         try:
             self.client = AsyncOpenAI(api_key=self.settings.api_key.get_secret_value())
             self.model_name = self.settings.embedding_model_name
-            logger.info(f'Initialized OpenAIEmbedding with model: {self.model_name}')
+            logger.info(f"Initialized OpenAIEmbedding with model: {self.model_name}")
         except Exception as e:
             raise EmbeddingConfigurationError(
-                f'Failed to initialize OpenAI embedding client: {str(e)}',
-                details={'provider': 'openai', 'error': str(e)}
+                f"Failed to initialize OpenAI embedding client: {str(e)}",
+                details={"provider": "openai", "error": str(e)},
             )
 
     @rate_limit(RateLimiterFactory.get_openai_limiter)
     @retry(
-        stop=stop_after_attempt(settings.openai.max_retries), 
+        stop=stop_after_attempt(settings.openai.max_retries),
         wait=wait_exponential(multiplier=1, min=2, max=60),
-        retry=retry_if_exception_type((APIConnectionError, APITimeoutError))
+        retry=retry_if_exception_type((APIConnectionError, APITimeoutError)),
     )
     async def embed_text(self, text: str) -> list[float]:
         """Generate embeddings for a single text."""
@@ -51,8 +64,8 @@ class OpenAIEmbedding(EmbeddingBase):
                 logger.warning("Attempting to embed empty text")
                 raise EmbeddingResponseError(
                     "Cannot embed empty or whitespace-only text",
-                    provider='openai',
-                    details={'model': self.model_name}
+                    provider="openai",
+                    details={"model": self.model_name},
                 )
 
             logger.debug(f"Generating embedding for text of length: {len(text)}")
@@ -61,109 +74,111 @@ class OpenAIEmbedding(EmbeddingBase):
                 input=text,
                 dimensions=settings.rag.embedding_dimension,
             )
-            
+
             if not response.data or len(response.data) == 0:
                 logger.error("OpenAI embeddings API returned no data")
                 raise EmbeddingResponseError(
                     "OpenAI embeddings API returned no data",
-                    provider='openai',
+                    provider="openai",
                     expected_count=1,
                     received_count=0,
-                    details={'model': self.model_name}
+                    details={"model": self.model_name},
                 )
 
             embedding = response.data[0].embedding
-            
+
             # Validate embedding dimension
             if len(embedding) != settings.rag.embedding_dimension:
-                logger.error(f"Embedding dimension mismatch: expected {settings.rag.embedding_dimension}, got {len(embedding)}")
+                logger.error(
+                    f"Embedding dimension mismatch: expected {settings.rag.embedding_dimension}, got {len(embedding)}"
+                )
                 raise EmbeddingDimensionMismatchError(
                     "Embedding dimension does not match expected dimension",
                     expected_dimension=settings.rag.embedding_dimension,
                     received_dimension=len(embedding),
-                    details={'model': self.model_name}
+                    details={"model": self.model_name},
                 )
 
-            logger.debug(f"Successfully generated embedding with dimension {len(embedding)}")
+            logger.debug(
+                f"Successfully generated embedding with dimension {len(embedding)}"
+            )
             return embedding
 
         except AuthenticationError as e:
             logger.error(f"OpenAI authentication failed: {str(e)}")
             raise EmbeddingAuthenticationError(
-                f"OpenAI authentication failed. Please verify your API key is correct and active.",
-                provider='openai',
-                details={'error': str(e), 'model': self.model_name}
+                "OpenAI authentication failed. Please verify your API key is correct and active.",
+                provider="openai",
+                details={"error": str(e), "model": self.model_name},
             ) from e
-        
+
         except RateLimitError as e:
             logger.warning(f"OpenAI rate limit exceeded: {str(e)}")
             raise EmbeddingRateLimitError(
-                f"OpenAI rate limit exceeded. Please wait before retrying.",
-                provider='openai',
+                "OpenAI rate limit exceeded. Please wait before retrying.",
+                provider="openai",
                 details={
-                    'error': str(e),
-                    'model': self.model_name,
-                    'max_retries': settings.openai.max_retries
-                }
+                    "error": str(e),
+                    "model": self.model_name,
+                    "max_retries": settings.openai.max_retries,
+                },
             ) from e
-        
+
         except APITimeoutError as e:
             logger.error(f"OpenAI API timeout: {str(e)}")
             raise EmbeddingTimeoutError(
-                f"OpenAI embeddings API request timed out",
-                provider='openai',
-                details={
-                    'error': str(e),
-                    'model': self.model_name
-                }
+                "OpenAI embeddings API request timed out",
+                provider="openai",
+                details={"error": str(e), "model": self.model_name},
             ) from e
-        
+
         except APIConnectionError as e:
             logger.error(f"OpenAI API connection error: {str(e)}")
             raise EmbeddingAPIError(
-                f"Failed to connect to OpenAI embeddings API. Check your network connection.",
-                provider='openai',
+                "Failed to connect to OpenAI embeddings API. Check your network connection.",
+                provider="openai",
                 model=self.model_name,
                 text_count=1,
-                error_type='connection_error',
-                details={'error': str(e)}
+                error_type="connection_error",
+                details={"error": str(e)},
             ) from e
-        
+
         except APIError as e:
             logger.error(f"OpenAI API error: {str(e)}")
             raise EmbeddingAPIError(
                 f"OpenAI embeddings API error: {str(e)}",
-                provider='openai',
+                provider="openai",
                 model=self.model_name,
                 text_count=1,
-                status_code=getattr(e, 'status_code', None),
-                error_type=getattr(e, 'type', None),
-                details={'error': str(e)}
+                status_code=getattr(e, "status_code", None),
+                error_type=getattr(e, "type", None),
+                details={"error": str(e)},
             ) from e
-        
+
         except (EmbeddingResponseError, EmbeddingDimensionMismatchError):
             # Re-raise our custom exceptions
             raise
-        
+
         except Exception as e:
-            logger.error(f"Unexpected error during OpenAI embedding: {str(e)}", exc_info=True)
+            logger.error(
+                f"Unexpected error during OpenAI embedding: {str(e)}", exc_info=True
+            )
             raise EmbeddingAPIError(
                 f"Unexpected error during OpenAI embedding generation: {str(e)}",
-                provider='openai',
+                provider="openai",
                 model=self.model_name,
                 text_count=1,
-                error_type='unexpected_error',
-                details={'error': str(e), 'error_type': type(e).__name__}
+                error_type="unexpected_error",
+                details={"error": str(e), "error_type": type(e).__name__},
             ) from e
 
     # embed_texts is now handled by the base class
 
-
     @rate_limit(RateLimiterFactory.get_openai_limiter)
     @retry(
-        stop=stop_after_attempt(settings.openai.max_retries), 
+        stop=stop_after_attempt(settings.openai.max_retries),
         wait=wait_exponential(multiplier=1, min=2, max=60),
-        retry=retry_if_exception_type((APIConnectionError, APITimeoutError))
+        retry=retry_if_exception_type((APIConnectionError, APITimeoutError)),
     )
     async def _embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for a single batch (internal method with rate limiting and retry)."""
@@ -173,41 +188,46 @@ class OpenAIEmbedding(EmbeddingBase):
             input=texts,
             dimensions=settings.rag.embedding_dimension,
         )
-        
-        if not response.data or len(response.data) == 0:    
+
+        if not response.data or len(response.data) == 0:
             logger.error("OpenAI embeddings API returned no data for batch")
             raise EmbeddingResponseError(
                 "OpenAI embeddings API returned no data for batch",
-                provider='openai',
+                provider="openai",
                 expected_count=len(texts),
                 received_count=0,
-                details={'model': self.model_name})
+                details={"model": self.model_name},
+            )
 
         if len(response.data) != len(texts):
-            logger.error(f"Embedding count mismatch: expected {len(texts)}, got {len(response.data)}")
+            logger.error(
+                f"Embedding count mismatch: expected {len(texts)}, got {len(response.data)}"
+            )
             raise EmbeddingResponseError(
                 f"Embedding count mismatch: expected {len(texts)}, got {len(response.data)}",
-                provider='openai',
+                provider="openai",
                 expected_count=len(texts),
                 received_count=len(response.data),
-                details={'model': self.model_name}
+                details={"model": self.model_name},
             )
-        
+
         # Ensure results are in the same order as input and validate dimensions
         embeddings = []
         for i, item in enumerate(response.data):
             if len(item.embedding) != settings.rag.embedding_dimension:
-                logger.error(f"Embedding {i} dimension mismatch: expected {settings.rag.embedding_dimension}, got {len(item.embedding)}")
+                logger.error(
+                    f"Embedding {i} dimension mismatch: expected {settings.rag.embedding_dimension}, got {len(item.embedding)}"
+                )
                 raise EmbeddingDimensionMismatchError(
                     f"Embedding dimension does not match expected dimension at index {i}",
                     expected_dimension=settings.rag.embedding_dimension,
                     received_dimension=len(item.embedding),
-                    details={'model': self.model_name, 'index': i}
+                    details={"model": self.model_name, "index": i},
                 )
             embeddings.append(item.embedding)
 
         return embeddings
-    
+
     def get_embedding_dimension(self) -> int:
         """Get the dimension of the embedding vectors."""
         return settings.rag.embedding_dimension

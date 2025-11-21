@@ -1,4 +1,4 @@
-﻿"""
+"""
 Basic logging configuration using Loguru.
 
 This module sets up simple logging with console and file output.
@@ -38,7 +38,9 @@ def setup_logging() -> None:
         )
 
     # Log initialization
-    logger.info(f"Logging initialized for {settings.app.app_name} v{settings.app.app_version}")
+    logger.info(
+        f"Logging initialized for {settings.app.app_name} v{settings.app.app_version}"
+    )
     logger.info(f"Environment: {settings.app.environment}")
 
 

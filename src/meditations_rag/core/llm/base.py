@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from pydantic import BaseModel
 
 
@@ -8,5 +9,7 @@ class LLMBase(ABC):
         pass
 
     @abstractmethod
-    async def generate_structured(self, prompt: str, response_model: type[BaseModel]) -> BaseModel:
+    async def generate_structured(
+        self, prompt: str, response_model: type[BaseModel]
+    ) -> BaseModel:
         pass

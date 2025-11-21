@@ -1,27 +1,24 @@
 """Core modules for the Meditations RAG application."""
 
-from meditations_rag.core.exceptions import (
-    MeditationsRAGException,
-    # LLM Exceptions
-    LLMException,
-    LLMConfigurationError,
-    LLMAPIError,
-    LLMRateLimitError,
-    LLMTimeoutError,
-    LLMResponseError,
-    LLMAuthenticationError,
-    # Embedding Exceptions
-    EmbeddingException,
-    EmbeddingConfigurationError,
+from meditations_rag.core.exceptions import (  # LLM Exceptions; Embedding Exceptions; Vector Store Exceptions
     EmbeddingAPIError,
-    EmbeddingRateLimitError,
-    EmbeddingTimeoutError,
-    EmbeddingResponseError,
     EmbeddingAuthenticationError,
+    EmbeddingConfigurationError,
     EmbeddingDimensionMismatchError,
-    # Vector Store Exceptions
-    VectorStoreException,
+    EmbeddingException,
+    EmbeddingRateLimitError,
+    EmbeddingResponseError,
+    EmbeddingTimeoutError,
+    LLMAPIError,
+    LLMAuthenticationError,
+    LLMConfigurationError,
+    LLMException,
+    LLMRateLimitError,
+    LLMResponseError,
+    LLMTimeoutError,
+    MeditationsRAGException,
     VectorStoreConnectionError,
+    VectorStoreException,
     VectorStoreQueryError,
 )
 

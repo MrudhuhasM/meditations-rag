@@ -19,6 +19,12 @@ The core of the application is a stateful agent that orchestrates the retrieval 
 - **Score Fusion**: Weighted combination of chunk scores and question scores (`final_score = chunk_score + α * question_score`).
 - **Metadata Filtering**: Leveraging extracted metadata (topics, chapters) for precise filtering.
 
+### 🛡️ Production Engineering
+- **Rate Limiting**: Implemented using `slowapi` with configurable strategies (Token Bucket) to ensure service stability.
+- **Security**: API Key authentication middleware protecting sensitive endpoints.
+- **Robust Error Handling**: Standardized exception handling and logging for easier debugging and reliability.
+- **Observability**: Structured logging configuration for tracking request flows and system health.
+
 ### ⚡ High-Performance Ingestion
 - **Semantic Chunking**: Intelligently splits text based on semantic similarity.
 - **Metadata Extraction**: Uses LLMs to extract topics, keywords, and philosophical concepts for each chunk.
@@ -29,12 +35,21 @@ The core of the application is a stateful agent that orchestrates the retrieval 
 - **Vector DB**: Qdrant
 - **LLMs**: OpenAI, OpenRouter, Gemini, Local (llama.cpp, VLLM)
 - **Tooling**: `uv` for dependency management, Docker for deployment
+- **Reliability**: SlowAPI (Rate Limiting), Pydantic (Validation)
 
 ### 🌐 Local LLM Support
 The application supports running with local LLMs via OpenAI-compatible APIs:
 - **llama.cpp**: For local model serving
 - **VLLM**: For high-performance inference on Kubernetes/GKE
 - Configure via environment variables to point to your local server
+
+### ☁️ Cloud LLM Support
+In addition to local LLMs, the application seamlessly integrates with cloud-based models for flexibility and scalability:
+- **OpenAI**: GPT-4 and GPT-3.5-turbo for high-quality generation and reasoning.
+- **Gemini**: Google's multimodal models for advanced text understanding and synthesis.
+- **OpenRouter**: A unified API for accessing multiple providers (e.g., Anthropic Claude, Mistral) with load balancing and failover.
+
+Configuration is handled via environment variables, allowing easy switching between providers without code changes. This hybrid approach ensures optimal performance, cost-efficiency, and access to the latest model capabilities.
 
 ## 🏗️ Architecture
 
@@ -106,11 +121,12 @@ The agentic pipeline is built with LangGraph:
 
 ```
 src/meditations_rag/
-├── api/            # FastAPI application & routers
+├── api/            # FastAPI application, routers & security
 ├── core/           # Core logic (LLM, Embedding, Rate Limiting)
 ├── pipelines/      # RAG & Ingestion pipelines (LangGraph)
 ├── services/       # Business logic (Loader, Chunker, Retrieval)
 └── main.py         # Ingestion entry point
+examples/           # Standalone examples for each component
 scripts/
 └── ingest.py       # Standalone ingestion script
 ```
@@ -121,3 +137,5 @@ Detailed documentation is available in the `docs/` directory:
 - [Retrieval Service](docs/RETRIEVAL_SERVICE.md)
 - [RAG Pipeline](docs/RAG_PIPELINE.md)
 - [Metadata Extraction](docs/metadata_extraction.md)
+
+Check the `examples/` directory for runnable scripts demonstrating individual components like rate limiting, error handling, and specific LLM integrations.

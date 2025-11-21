@@ -17,6 +17,4 @@ def main() -> None:
     config_summary = settings.get_config_summary()
     log.debug(f"Configuration: {config_summary}")
 
-    print("Hello from meditations-rag!")
-
     log.info("Application startup complete")

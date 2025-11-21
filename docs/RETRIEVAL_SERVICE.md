@@ -5,7 +5,7 @@
 The `RetrievalService` implements a **hybrid retrieval strategy** for the RAG pipeline, combining:
 
 1. **Dense retrieval from chunks** - Semantic similarity search over chunk embeddings
-2. **Dense retrieval from questions** - Semantic similarity search over question embeddings  
+2. **Dense retrieval from questions** - Semantic similarity search over question embeddings
 3. **Score fusion** - Linear combination of chunk and question scores
 
 This dual-path approach improves retrieval quality by matching both:
@@ -218,19 +218,19 @@ async def basic_retrieval():
     embedding_provider = EmbeddingFactory().create_embedding_provider()
     embedding_service = VectorEmbeddingService(embedding_provider)
     vector_store = QdrantVectorStore()
-    
+
     retrieval_service = RetrievalService(
         vector_store=vector_store,
         embedding_service=embedding_service,
         alpha=0.3,
         top_k=5
     )
-    
+
     # Retrieve
     results = await retrieval_service.retrieve(
         query="How should I prepare for challenges each morning?"
     )
-    
+
     # Display
     for i, result in enumerate(results, 1):
         print(f"\n[{i}] Score: {result.score:.4f}")
@@ -247,23 +247,23 @@ asyncio.run(basic_retrieval())
 ```python
 async def compare_modes():
     # ... setup code ...
-    
+
     query = "What did Marcus learn from his teachers?"
-    
+
     # Chunk-only retrieval
     chunk_results = await retrieval_service.retrieve(
         query=query,
         chunk_only=True,
         top_k=3
     )
-    
+
     # Question-only retrieval
     question_results = await retrieval_service.retrieve(
         query=query,
         question_only=True,
         top_k=3
     )
-    
+
     print("Chunk-only top result:", chunk_results[0].chunk_id)
     print("Question-only top result:", question_results[0].chunk_id)
     print("Matched question:", question_results[0].matched_question)
@@ -274,7 +274,7 @@ async def compare_modes():
 ```python
 async def tune_alpha():
     query = "What does Marcus say about death?"
-    
+
     # Test different alpha values
     for alpha in [0.0, 0.3, 0.5, 0.7, 1.0]:
         results = await retrieval_service.retrieve(
@@ -282,7 +282,7 @@ async def tune_alpha():
             alpha=alpha,
             top_k=3
         )
-        
+
         print(f"\nAlpha = {alpha}")
         print(f"Top chunk: {results[0].chunk_id}")
         print(f"Score: {results[0].score:.4f}")
@@ -299,7 +299,7 @@ async def get_llm_context():
         top_k=3,
         include_metadata=True
     )
-    
+
     # Use in LLM prompt
     prompt = f"""
 Context from Marcus Aurelius's Meditations:
@@ -309,7 +309,7 @@ User Question: {context_data['query']}
 
 Please answer based on the provided context.
 """
-    
+
     print(prompt)
     print(f"\nRetrieval Stats:")
     print(f"  Avg Score: {context_data['retrieval_metadata']['avg_score']:.4f}")
@@ -432,16 +432,16 @@ print(f"From both: {hybrid_sources}")
 ```python
 async def evaluate_strategies(query: str, ground_truth_chunk_id: str):
     strategies = [0.0, 0.3, 0.5, 0.7, 1.0]
-    
+
     for alpha in strategies:
         results = await retrieval_service.retrieve(query, alpha=alpha, top_k=10)
-        
+
         # Find rank of ground truth
         rank = next(
             (i for i, r in enumerate(results, 1) if r.chunk_id == ground_truth_chunk_id),
             None
         )
-        
+
         print(f"Alpha {alpha}: Ground truth at rank {rank}")
 ```
 
@@ -522,16 +522,16 @@ class CustomRetrievalService(RetrievalService):
         # Custom fusion: Reciprocal Rank Fusion (RRF)
         k = 60
         fused_scores = {}
-        
+
         for rank, point in enumerate(chunk_results, 1):
             chunk_id = point.id
             fused_scores[chunk_id] = fused_scores.get(chunk_id, 0) + 1 / (k + rank)
-        
+
         for rank, point in enumerate(question_results, 1):
             chunk_id = point.payload.get("chunk_id")
             if chunk_id:
                 fused_scores[chunk_id] = fused_scores.get(chunk_id, 0) + 1 / (k + rank)
-        
+
         # Convert to RetrievalResult objects
         # ... implementation ...
 ```

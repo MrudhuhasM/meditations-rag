@@ -77,18 +77,18 @@ from meditations_rag.services.metadata import MetadataExtractorService
 async def extract_metadata():
     # Create LLM (uses settings.rag.llm_provider)
     llm = create_llm()
-    
+
     # Initialize extractor
     extractor = MetadataExtractorService(
         llm=llm,
         batch_size=10,
         max_concurrent=5
     )
-    
+
     # Extract from single chunk
     chunk_text = "Your document chunk text here..."
     metadata = await extractor.extract_metadata(chunk_text)
-    
+
     print(f"Topic: {metadata.topic}")
     print(f"Questions: {metadata.questions}")
     print(f"Keywords: {metadata.keywords}")
@@ -100,13 +100,13 @@ async def extract_metadata():
 async def extract_batch():
     llm = create_llm()
     extractor = MetadataExtractorService(llm=llm)
-    
+
     chunks = ["chunk1 text", "chunk2 text", "chunk3 text"]
-    
+
     # Returns List[ChunkMetadata | None]
     # None for failed extractions
     metadata_list = await extractor.extract_batch_metadata(chunks)
-    
+
     for chunk, meta in zip(chunks, metadata_list):
         if meta:
             print(f"✓ Extracted: {meta.topic}")
