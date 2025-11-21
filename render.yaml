@@ -1,0 +1,62 @@
+services:
+  # Qdrant Vector Database (Private Service)
+  - type: pserv
+    name: meditations-qdrant
+    runtime: image
+    image:
+      url: qdrant/qdrant:latest
+    disk:
+      name: qdrant-data
+      mountPath: /qdrant/storage
+      sizeGB: 10
+    envVars:
+      - key: QDRANT_ALLOW_RECOVERY_MODE
+        value: "true"
+
+  # Meditations RAG API (Web Service)
+  - type: web
+    name: meditations-rag
+    runtime: python
+    buildCommand: |
+      pip install uv
+      uv sync --frozen
+    startCommand: uv run uvicorn meditations_rag.api.main:app --host 0.0.0.0 --port $PORT
+    preDeployCommand: uv run python scripts/ingest.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: APP_ENVIRONMENT
+        value: production
+      - key: APP_CORS_ORIGINS
+        value: '["*"]'
+      - key: RAG_EMBEDDING_PROVIDER
+        value: gemini
+      - key: RAG_LLM_PROVIDER
+        value: gemini
+      - key: RAG_STRONG_LLM_PROVIDER
+        value: gemini
+      - key: RAG_EMBEDDING_DIMENSION
+        value: 768
+      - key: GEMINI_LLM_MODEL_NAME
+        value: gemini-2.5-flash
+      - key: GEMINI_STRONG_LLM_MODEL_NAME
+        value: gemini-2.5-pro
+      - key: QDRANT_HOST
+        fromService:
+          type: pserv
+          name: meditations-qdrant
+          property: host
+      - key: QDRANT_PORT
+        value: 6333
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: APP_API_KEY
+        sync: false
+      - key: APP_DEBUG
+        value: "false"
+      - key: LOGGING_LOG_LEVEL
+        value: INFO
+      - key: GEMINI_TIMEOUT
+        value: 60
+      - key: GEMINI_EMBEDDING_MODEL_NAME
+        value: models/text-embedding-004
