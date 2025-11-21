@@ -15,7 +15,6 @@ from typing import Any, Dict, List
 from uuid import uuid4
 
 from llama_index.core.schema import BaseNode
-from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
@@ -28,24 +27,6 @@ from qdrant_client.models import (
 from meditations_rag.config import get_logger, settings
 
 logger = get_logger(__name__)
-
-
-class ChunkPoint(BaseModel):
-    """Data model for a chunk point to be upserted to Qdrant."""
-
-    id: str = Field(description="Unique identifier for the point")
-    vector: List[float] = Field(description="Dense embedding vector")
-    payload: Dict[str, Any] = Field(description="Metadata payload")
-
-
-class QuestionPoint(BaseModel):
-    """Data model for a question point to be upserted to Qdrant."""
-
-    id: str = Field(description="Unique identifier for the question")
-    vector: List[float] = Field(description="Dense embedding of the question")
-    payload: Dict[str, Any] = Field(
-        description="Metadata including question text, chunk_id, and other metadata"
-    )
 
 
 class QdrantVectorStore:
@@ -67,6 +48,7 @@ class QdrantVectorStore:
         self,
         host: str | None = None,
         port: int | None = None,
+        url: str | None = None,
         api_key: str | None = None,
         main_collection_name: str | None = None,
         question_collection_name: str | None = None,
@@ -80,6 +62,7 @@ class QdrantVectorStore:
         Args:
             host: Qdrant server host (defaults to settings)
             port: Qdrant server port (defaults to settings)
+            url: Qdrant Cloud URL (defaults to settings)
             api_key: Qdrant API key if required (defaults to settings)
             main_collection_name: Name of main chunks collection (defaults to settings)
             question_collection_name: Name of questions collection (defaults to settings)
@@ -89,6 +72,7 @@ class QdrantVectorStore:
         """
         self.host = host or settings.qdrant.host
         self.port = port or settings.qdrant.port
+        self.url = url or settings.qdrant.url
         self.api_key_str = api_key or (
             settings.qdrant.api_key.get_secret_value()
             if settings.qdrant.api_key
@@ -107,14 +91,22 @@ class QdrantVectorStore:
         self.max_retries = max_retries
 
         # Initialize client
-        self.client = QdrantClient(
-            host=self.host, port=self.port, api_key=self.api_key_str, timeout=60
-        )
-
-        logger.info(
-            f"Initialized Qdrant client: host={self.host}, port={self.port}, "
-            f"main_collection={self.main_collection}, question_collection={self.question_collection}"
-        )
+        if self.url:
+            self.client = QdrantClient(
+                url=self.url, api_key=self.api_key_str, timeout=60
+            )
+            logger.info(
+                f"Initialized Qdrant client: url={self.url}, "
+                f"main_collection={self.main_collection}, question_collection={self.question_collection}"
+            )
+        else:
+            self.client = QdrantClient(
+                host=self.host, port=self.port, api_key=self.api_key_str, timeout=60
+            )
+            logger.info(
+                f"Initialized Qdrant client: host={self.host}, port={self.port}, "
+                f"main_collection={self.main_collection}, question_collection={self.question_collection}"
+            )
 
     def _ensure_collection_exists(
         self,
@@ -143,12 +135,18 @@ class QdrantVectorStore:
                 collection_info = self.client.get_collection(
                     collection_name=collection_name
                 )
-                config_size = collection_info.config.params.vectors.size
-
-                if config_size != vector_size:
-                    logger.warning(
-                        f"Collection '{collection_name}' has vector size {config_size}, "
-                        f"expected {vector_size}. This may cause issues."
+                vectors_config = collection_info.config.params.vectors
+                
+                if isinstance(vectors_config, VectorParams):
+                    config_size = vectors_config.size
+                    if config_size != vector_size:
+                        logger.warning(
+                            f"Collection '{collection_name}' has vector size {config_size}, "
+                            f"expected {vector_size}. This may cause issues."
+                        )
+                else:
+                    logger.debug(
+                        f"Collection '{collection_name}' uses named vectors configuration. Skipping size validation."
                     )
                 return True
 
@@ -197,6 +195,9 @@ class QdrantVectorStore:
         self._ensure_collection_exists(
             collection_name=self.question_collection, vector_size=size
         )
+
+        # Create payload indexes
+        self.create_payload_indexes()
 
         logger.info("All collections verified and ready")
 
@@ -258,6 +259,67 @@ class QdrantVectorStore:
 
         return points
 
+    async def _upsert_batch(
+        self, collection_name: str, points: List[PointStruct], description: str
+    ) -> Dict[str, Any]:
+        """
+        Internal helper to upsert a list of points in batches.
+
+        Args:
+            collection_name: Target collection name
+            points: List of PointStruct objects to upsert
+            description: Description for logging (e.g., "chunks", "questions")
+
+        Returns:
+            Dictionary with success/failure statistics
+        """
+        total_upserted = 0
+        failed_ids = []
+        failed_count = 0  # For cases where we don't track IDs explicitly or just want a count
+
+        for i in range(0, len(points), self.batch_size):
+            batch = points[i : i + self.batch_size]
+            batch_num = i // self.batch_size + 1
+            total_batches = (len(points) + self.batch_size - 1) // self.batch_size
+
+            logger.info(
+                f"Upserting batch {batch_num}/{total_batches} "
+                f"({len(batch)} {description}) to {collection_name}"
+            )
+
+            try:
+                result = self.client.upsert(
+                    collection_name=collection_name, points=batch, wait=True
+                )
+
+                if result.status == UpdateStatus.COMPLETED:
+                    total_upserted += len(batch)
+                    logger.debug(f"Batch {batch_num} upserted successfully")
+                else:
+                    logger.warning(
+                        f"Batch {batch_num} completed with status: {result.status}"
+                    )
+                    failed_ids.extend([str(p.id) for p in batch])
+                    failed_count += len(batch)
+
+            except Exception as e:
+                logger.error(f"Failed to upsert batch {batch_num}: {e}")
+                failed_ids.extend([str(p.id) for p in batch])
+                failed_count += len(batch)
+
+        success_rate = (total_upserted / len(points)) * 100 if points else 0
+        logger.info(
+            f"{description.capitalize()} upsert completed: {total_upserted}/{len(points)} ({success_rate:.1f}%) successful"
+        )
+
+        return {
+            "total": len(points),
+            "successful": total_upserted,
+            "failed": failed_count,
+            "failed_ids": failed_ids,
+            "success_rate": success_rate,
+        }
+
     async def upsert_chunks_batch(
         self, chunks: List[BaseNode], chunk_vectors: List[List[float]]
     ) -> Dict[str, Any]:
@@ -290,49 +352,9 @@ class QdrantVectorStore:
             points.append(point)
 
         # Upsert in batches
-        total_upserted = 0
-        failed_ids = []
-
-        for i in range(0, len(points), self.batch_size):
-            batch = points[i : i + self.batch_size]
-            batch_num = i // self.batch_size + 1
-            total_batches = (len(points) + self.batch_size - 1) // self.batch_size
-
-            logger.info(
-                f"Upserting batch {batch_num}/{total_batches} "
-                f"({len(batch)} points) to main collection"
-            )
-
-            try:
-                result = self.client.upsert(
-                    collection_name=self.main_collection, points=batch, wait=True
-                )
-
-                if result.status == UpdateStatus.COMPLETED:
-                    total_upserted += len(batch)
-                    logger.debug(f"Batch {batch_num} upserted successfully")
-                else:
-                    logger.warning(
-                        f"Batch {batch_num} completed with status: {result.status}"
-                    )
-                    failed_ids.extend([p.id for p in batch])
-
-            except Exception as e:
-                logger.error(f"Failed to upsert batch {batch_num}: {e}")
-                failed_ids.extend([p.id for p in batch])
-
-        success_rate = (total_upserted / len(points)) * 100 if points else 0
-        logger.info(
-            f"Chunk upsert completed: {total_upserted}/{len(points)} ({success_rate:.1f}%) successful"
+        return await self._upsert_batch(
+            collection_name=self.main_collection, points=points, description="chunks"
         )
-
-        return {
-            "total": len(points),
-            "successful": total_upserted,
-            "failed": len(failed_ids),
-            "failed_ids": failed_ids,
-            "success_rate": success_rate,
-        }
 
     async def upsert_questions_batch(
         self, chunks: List[BaseNode], question_vectors_by_chunk: List[List[List[float]]]
@@ -397,55 +419,46 @@ class QdrantVectorStore:
         logger.info(f"Created {len(all_question_points)} question points for upsertion")
 
         # Upsert in batches
-        total_upserted = 0
-        failed_count = 0
+        return await self._upsert_batch(
+            collection_name=self.question_collection,
+            points=all_question_points,
+            description="questions",
+        )
 
-        for i in range(0, len(all_question_points), self.batch_size):
-            batch = all_question_points[i : i + self.batch_size]
-            batch_num = i // self.batch_size + 1
-            total_batches = (
-                len(all_question_points) + self.batch_size - 1
-            ) // self.batch_size
+    def create_payload_indexes(self) -> None:
+        """
+        Create payload indexes for metadata filtering.
+        Required for Qdrant Cloud and large collections.
+        """
+        logger.info("Creating payload indexes for metadata filtering...")
 
-            logger.info(
-                f"Upserting batch {batch_num}/{total_batches} "
-                f"({len(batch)} questions) to questions collection"
-            )
+        # Fields to index in main collection
+        fields_to_index = [
+            "keywords",
+            "topic",
+            "philosophical_concepts",
+            "stoic_practices",
+            "entities",
+            "book",
+            "chapter",
+        ]
 
+        for field in fields_to_index:
             try:
-                result = self.client.upsert(
-                    collection_name=self.question_collection, points=batch, wait=True
+                self.client.create_payload_index(
+                    collection_name=self.main_collection,
+                    field_name=field,
+                    field_schema="keyword",  # Use keyword schema for exact matching/filtering
+                    wait=True,
                 )
-
-                if result.status == UpdateStatus.COMPLETED:
-                    total_upserted += len(batch)
-                    logger.debug(f"Batch {batch_num} upserted successfully")
-                else:
-                    logger.warning(
-                        f"Batch {batch_num} completed with status: {result.status}"
-                    )
-                    failed_count += len(batch)
-
+                logger.info(
+                    f"Created index for field '{field}' in '{self.main_collection}'"
+                )
             except Exception as e:
-                logger.error(f"Failed to upsert question batch {batch_num}: {e}")
-                failed_count += len(batch)
+                # Log warning but continue (might already exist or other issue)
+                logger.warning(f"Failed to create index for '{field}': {e}")
 
-        success_rate = (
-            (total_upserted / len(all_question_points)) * 100
-            if all_question_points
-            else 0
-        )
-        logger.info(
-            f"Question upsert completed: {total_upserted}/{len(all_question_points)} "
-            f"({success_rate:.1f}%) successful"
-        )
-
-        return {
-            "total": len(all_question_points),
-            "successful": total_upserted,
-            "failed": failed_count,
-            "success_rate": success_rate,
-        }
+        logger.info("Payload index creation complete")
 
     def close(self) -> None:
         """Close the Qdrant client connection."""

@@ -84,6 +84,18 @@ class GeminiEmbedding(EmbeddingBase):
             # Gemini returns the embedding directly
             embedding = response.embeddings
 
+            # Handle ContentEmbedding object (if it returns a single object)
+            if hasattr(embedding, "values"):
+                embedding = embedding.values
+            # Handle list of ContentEmbedding objects (if it returns a list)
+            elif (
+                isinstance(embedding, list)
+                and len(embedding) > 0
+                and hasattr(embedding[0], "values")
+            ):
+                # If we sent a single text, we expect a single embedding
+                embedding = embedding[0].values
+
             # Validate embedding is a list and has correct dimension
             if not isinstance(embedding, list):
                 logger.error(f"Gemini returned non-list embedding: {type(embedding)}")
@@ -239,6 +251,10 @@ class GeminiEmbedding(EmbeddingBase):
 
         embeddings = []
         for i, embed in enumerate(response.embeddings):
+            # Handle ContentEmbedding object
+            if hasattr(embed, "values"):
+                embed = embed.values
+
             if not isinstance(embed, list):
                 logger.error(
                     f"Gemini returned non-list embedding at index {i}: {type(embed)}"

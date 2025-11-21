@@ -5,13 +5,14 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 from meditations_rag.api.limiter import limiter
 from meditations_rag.api.routers import agentic, health, rag
 from meditations_rag.api.security import get_api_key
 from meditations_rag.config import get_logger, settings
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 
 logger = get_logger(__name__)
 

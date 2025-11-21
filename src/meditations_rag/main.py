@@ -35,11 +35,7 @@ async def main():
 
     if not os.path.exists(source_file):
         logger.error(f"Source file not found: {source_file}")
-        # Fallback to absolute path if relative fails (for dev environment)
-        source_file = "C:\\Users\\mrudh\\Documents\\Projects\\ProfileProject\\Agentic-RAG\\meditations-rag\\data\\Marcus-Aurelius-Meditations.pdf"
-        if not os.path.exists(source_file):
-            logger.error(f"Source file still not found: {source_file}")
-            return
+        return
 
     logger.info(f"Starting ingestion for: {source_file}")
 

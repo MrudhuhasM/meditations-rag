@@ -2,6 +2,7 @@ from functools import lru_cache
 from typing import Annotated, Any
 
 from fastapi import Depends
+
 from meditations_rag.config import get_logger, settings
 from meditations_rag.core.embedding import create_embedding
 from meditations_rag.core.llm import create_llm
