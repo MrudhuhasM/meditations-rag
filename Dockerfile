@@ -27,8 +27,9 @@ RUN uv sync --frozen --no-dev
 # Add virtual environment to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Expose port
-EXPOSE 8000
+# Expose port (Cloud Run defaults to 8080)
+EXPOSE 8080
 
 # Run the application
-CMD ["uvicorn", "meditations_rag.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use shell form to allow variable expansion for PORT
+CMD ["/bin/sh", "-c", "uvicorn meditations_rag.api.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
