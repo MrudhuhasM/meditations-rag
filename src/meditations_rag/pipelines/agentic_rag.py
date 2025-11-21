@@ -88,6 +88,7 @@ async def controller_node(state: AgentState, llm: LLMBase) -> Dict[str, Any]:
     docs = state.get("retrieved_docs", [])
     feedback = state.get("evaluation_feedback")
     iteration = state.get("iteration", 0)
+    active_model = state.get("active_model", "fast")
 
     # Construct context summary
     context_summary = ""
@@ -100,6 +101,7 @@ async def controller_node(state: AgentState, llm: LLMBase) -> Dict[str, Any]:
         context_summary = "No documents retrieved yet."
 
     prompt = f"""You are the Controller Agent for a RAG system on Marcus Aurelius' Meditations.
+Current Model: {active_model}
 
 User Query: "{query}"
 
@@ -128,6 +130,10 @@ Decide the next step."""
         }
         if decision.action == "switch_model":
             updates["active_model"] = "strong"
+        
+        if decision.action == "clarify":
+            # Use reasoning as the clarification message to the user
+            updates["answer"] = decision.reasoning
 
         if decision.search_query:
             updates["search_queries"] = state.get("search_queries", []) + [

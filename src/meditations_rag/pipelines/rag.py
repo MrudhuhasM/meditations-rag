@@ -329,6 +329,45 @@ Remember: Your authority comes from the text itself. Stay faithful to what Marcu
                 details={"query": query, "error": str(e)},
             ) from e
 
+    def _build_sources_list(
+        self, results: List[RetrievalResult], include_metadata: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Build list of source dictionaries from retrieval results.
+
+        Args:
+            results: List of retrieval results
+            include_metadata: Whether to include metadata fields
+
+        Returns:
+            List of source dictionaries
+        """
+        sources = []
+        for result in results:
+            source = {
+                "chunk_id": result.chunk_id,
+                "text": result.text,
+                "score": round(result.score, 4),
+            }
+
+            # Add optional fields
+            if result.chunk_score is not None:
+                source["chunk_score"] = round(result.chunk_score, 4)
+            if result.question_score is not None:
+                source["question_score"] = round(result.question_score, 4)
+            if result.matched_question:
+                source["matched_question"] = result.matched_question
+
+            # Add metadata if requested
+            if include_metadata and result.metadata:
+                # Include only relevant metadata fields
+                for key in ["topic", "book", "chapter", "keywords"]:
+                    if key in result.metadata:
+                        source[key] = result.metadata[key]
+
+            sources.append(source)
+        return sources
+
     async def query(
         self,
         query: str,
@@ -426,29 +465,9 @@ Remember: Your authority comes from the text itself. Stay faithful to what Marcu
             # Prepare sources if requested
             sources = []
             if include_sources:
-                for result in retrieval_results:
-                    source = {
-                        "chunk_id": result.chunk_id,
-                        "text": result.text,
-                        "score": round(result.score, 4),
-                    }
+                sources = self._build_sources_list(retrieval_results, include_metadata)
 
-                    # Add optional fields
-                    if result.chunk_score is not None:
-                        source["chunk_score"] = round(result.chunk_score, 4)
-                    if result.question_score is not None:
-                        source["question_score"] = round(result.question_score, 4)
-                    if result.matched_question:
-                        source["matched_question"] = result.matched_question
-
-                    # Add metadata if requested
-                    if include_metadata and result.metadata:
-                        # Include only relevant metadata fields
-                        for key in ["topic", "book", "chapter", "keywords"]:
-                            if key in result.metadata:
-                                source[key] = result.metadata[key]
-
-                    sources.append(source)
+            # Build retrieval metadata
 
             # Build retrieval metadata
             retrieval_metadata = {
@@ -658,26 +677,7 @@ Remember: Your authority comes from the text itself. Stay faithful to what Marcu
             # Step 4: Build Response
             sources = []
             if include_sources:
-                for result in retrieval_results:
-                    source = {
-                        "chunk_id": result.chunk_id,
-                        "text": result.text,
-                        "score": round(result.score, 4),
-                    }
-
-                    if result.chunk_score is not None:
-                        source["chunk_score"] = round(result.chunk_score, 4)
-                    if result.question_score is not None:
-                        source["question_score"] = round(result.question_score, 4)
-                    if result.matched_question:
-                        source["matched_question"] = result.matched_question
-
-                    if include_metadata and result.metadata:
-                        for key in ["topic", "book", "chapter", "keywords"]:
-                            if key in result.metadata:
-                                source[key] = result.metadata[key]
-
-                    sources.append(source)
+                sources = self._build_sources_list(retrieval_results, include_metadata)
 
             response = RAGResponse(
                 query=query,

@@ -2,6 +2,7 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
+
 from meditations_rag.api.dependencies import AgenticGraphDep
 from meditations_rag.api.limiter import limiter
 from meditations_rag.api.schemas.rag import QueryRequest

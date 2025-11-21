@@ -489,8 +489,9 @@ class QdrantSettings(BaseSettings):
         env_file=".env", env_ignore_empty=True, extra="ignore", env_prefix="QDRANT_"
     )
 
-    host: str = Field(default="localhost", description="Qdrant host")
-    port: int = Field(default=6333, description="Qdrant port")
+    url: str | None = Field(default=None, description="Qdrant Cloud URL")
+    host: str | None = Field(default="localhost", description="Qdrant host")
+    port: int | None = Field(default=6333, description="Qdrant port")
     api_key: SecretStr | None = Field(
         default=None, description="Qdrant API key if required"
     )
@@ -506,6 +507,8 @@ class QdrantSettings(BaseSettings):
     @field_validator("port")
     @classmethod
     def validate_port(cls, v):
+        if v is None:
+            return v
         if not (1 <= v <= 65535):
             raise ValueError("Qdrant port must be between 1 and 65535")
         return v
@@ -520,6 +523,8 @@ class QdrantSettings(BaseSettings):
     @field_validator("host")
     @classmethod
     def validate_host(cls, v):
+        if v is None:
+            return v
         import ipaddress
         import socket
 

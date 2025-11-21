@@ -2,6 +2,7 @@ from typing import Dict, Optional
 
 from fastapi import HTTPException, Request, Security, status
 from fastapi.security import APIKeyHeader, APIKeyQuery
+
 from meditations_rag.config import settings
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
